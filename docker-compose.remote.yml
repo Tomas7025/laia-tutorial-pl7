@@ -1,0 +1,16 @@
+# Docker Compose configuration for using remote MLflow server
+# Usage: docker-compose -f docker-compose.remote.yml up
+
+services:
+  flask_app:
+    build:
+      context: .
+      dockerfile: Dockerfile.flask
+    container_name: flask_app
+    ports:
+      - "8080:8080"
+    environment:
+      - MLFLOW_TRACKING_URI=http://dsn2026hotcrp.dei.uc.pt:8080
+      - MLFLOW_TRACKING_USERNAME=${MLFLOW_USERNAME}
+      - MLFLOW_TRACKING_PASSWORD=${MLFLOW_PASSWORD}
+
