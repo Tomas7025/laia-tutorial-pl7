@@ -129,6 +129,23 @@ jobs:
             -e MLFLOW_EXPERIMENT_NAME \
             training:${{ github.sha }}
 
+      - name: Log in to GHCR
+        if: success()
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag image as staging
+        run: |
+          docker tag \
+            ghcr.io/${{ github.repository }}/serving:${{ github.sha }} \
+            ghcr.io/${{ github.repository }}/serving:staging
+
+      - name: Push staging tag
+        run: docker push ghcr.io/${{ github.repository }}/serving:staging
+
       - name: Extract metadata (same rules as build)
         id: meta
         uses: docker/metadata-action@v5
@@ -151,14 +168,6 @@ jobs:
               $(printf -- "--annotation %s " ${{ steps.meta.outputs.labels }}) \
               "$src"
           done
-
-      - name: Log in to GHCR
-        if: success()
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push tags
         if: success()

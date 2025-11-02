@@ -1,0 +1,46 @@
+services:
+  # Ephemeral training runner (job-scoped, unregisters after each job)
+  train-runner:
+    build:
+      context: .
+      dockerfile: training-runner/Dockerfile
+    container_name: gh-train-runner
+    restart: always
+    environment:
+      # Scope/target where the runner registers
+      RUNNER_SCOPE: repo
+      RUNNER_TARGET: jrcampos/laia-tutorial          # <== change to your owner/repo
+      RUNNER_LABELS: self-hosted,linux,x64,training
+      RUNNER_EPHEMERAL: "true"
+
+      # GitHub App creds (provide via env or Docker secrets)
+      GITHUB_APP_ID: "${GITHUB_APP_ID}"
+      GITHUB_APP_INSTALLATION_ID: "${GITHUB_APP_INSTALLATION_ID}"
+      GITHUB_APP_PRIVATE_KEY: "${GITHUB_APP_PRIVATE_KEY}"
+
+      RUNNER_NAME: "train-runner-${HOSTNAME:-local}"
+      RUNNER_WORKDIR: "/_work"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # Persistent deploy runner
+  deploy-runner:
+    build:
+      context: .
+      dockerfile: deploy-runner/Dockerfile
+    container_name: gh-deploy-runner
+    restart: always
+    environment:
+      RUNNER_SCOPE: repo
+      RUNNER_TARGET: jrcampos/laia-tutorial          # <== change
+      RUNNER_LABELS: self-hosted,linux,x64,deploy
+      RUNNER_EPHEMERAL: "false"
+
+      GITHUB_APP_ID: "${GITHUB_APP_ID}"
+      GITHUB_APP_INSTALLATION_ID: "${GITHUB_APP_INSTALLATION_ID}"
+      GITHUB_APP_PRIVATE_KEY: "${GITHUB_APP_PRIVATE_KEY}"
+
+      RUNNER_NAME: "deploy-runner-${HOSTNAME:-local}"
+      RUNNER_WORKDIR: "/_work"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
