@@ -46,7 +46,6 @@ jobs:
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_PASSWORD }}
           MODEL_ALIAS: ${{ github.sha }}
           MLFLOW_MODEL_NAME: ${{ env.MLFLOW_MODEL_NAME }}
-
         run: |
           docker run -d \
             --name serving-app \
@@ -66,8 +65,6 @@ jobs:
       # apply  A/B testing, shadow testing and other approaches to measure
       # and validate the performance of the model before moving to production
       - run: uv run pytest tests/test_e2e.py -v
-      - run: docker stop serving-app || true
-      - run: docker rm serving-app || true
 
       # When reaching the stage both the serving and the model will have passed
       # the necessary tests and we promote to production
