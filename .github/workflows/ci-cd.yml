@@ -33,10 +33,10 @@ jobs:
         run: uv sync
       
       - name: Run API unit tests
-        run: uv run pytest tests/test_api.py -v
+        run: uv run pytest ci-tests/test_api.py -v
       
       - name: Run training unit tests
-        run: uv run pytest tests/test_train.py -v
+        run: uv run pytest ci-tests/test_train.py -v
 
   build-images:
     # Continuous Integration - tests passed, build training and serving images
@@ -229,7 +229,7 @@ jobs:
           sleep 10
       
       - name: Run E2E tests
-        run: uv run pytest tests/test_e2e.py -v
+        run: uv run pytest staging/test_e2e.py -v
       
       - name: Show container logs on failure
         if: failure()
@@ -263,15 +263,16 @@ jobs:
           MLFLOW_EXPERIMENT_NAME: ${{ env.MLFLOW_EXPERIMENT_NAME }}
           MLFLOW_MODEL_NAME: ${{ env.MLFLOW_MODEL_NAME }}
         run: |
-          uv run python promote_model_to_production.py
+          uv run python staging/promote_model_to_production.py
 
   push-production:
-    name: Push Image to Staging
+    name: Deploy/update
     runs-on: ubuntu-latest
     needs: staging
 
     steps:
-      # Currently this is running in a local runner; if it were fully automated you would connect to an ssh server or user self hosted runners
+      # Currently this is running in a local runner
+      # If it were fully automated you would connect to an ssh server, use self hosted runners, or similar
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -282,9 +283,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Get production tagged image
       - name: Pull Flask image
         run: docker pull ${{ env.REGISTRY }}/${{ env.FLASK_IMAGE_NAME }}:production
 
+      # Check running container if any, stop and (re)deploy
+      # In a production pipeline the infrastructure managament would be decoupled from the model
+      # Should only redeploy the image if the serving infrastructure changed
       - name: Stop existing container
         run: |
           if [ "$(docker ps -q -f name=serving-app)" ]; then
