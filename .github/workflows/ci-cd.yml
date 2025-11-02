@@ -104,22 +104,28 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      
-      - name: Install uv
-        run: pip install uv
-      
-      - name: Install dependencies
-        run: uv sync
-      
-      - name: Train model and log on remote MLflow
+
+      - name: Download training image
+        uses: actions/download-artifact@v4
+        with:
+          name: training-image
+          path: /tmp
+
+      - name: Load training image
+        run: docker load --input /tmp/training.tar
+
+      - name: Run training container
         env:
           MLFLOW_TRACKING_URI: ${{ env.MLFLOW_TRACKING_URI }}
           MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_USERNAME }}
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_PASSWORD }}
         run: |
-          # Train model and log to remote MLflow server
-          uv run python training/train_ci.py
-      
+          docker run --rm \
+            -e MLFLOW_TRACKING_URI \
+            -e MLFLOW_TRACKING_USERNAME \
+            -e MLFLOW_TRACKING_PASSWORD \
+            training:${{ github.sha }}
+
       - name: Save training metadata
         run: |
           echo "Training completed at $(date)" > training_metadata.txt
