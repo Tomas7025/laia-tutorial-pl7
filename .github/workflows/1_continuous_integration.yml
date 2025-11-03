@@ -37,6 +37,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
 
+      # Setup lowercased image prefix using env.REGISTRY and github.repository
+      - name: Setup lowercase variables
+        id: imagevars
+        run: |
+          # Build the prefix from env.REGISTRY and github.repository and force to lower
+          PREFIX="${{ env.REGISTRY }}/${{ github.repository }}"
+          IMAGE_PREFIX=$(echo "$PREFIX" | tr '[:upper:]' '[:lower:]')
+          echo "Computed IMAGE_PREFIX=$IMAGE_PREFIX"
+          # Expose as a step output and also to subsequent steps via GITHUB_ENV
+          echo "IMAGE_PREFIX=$IMAGE_PREFIX" >> $GITHUB_OUTPUT
+          echo "IMAGE_PREFIX=$IMAGE_PREFIX" >> $GITHUB_ENV
+
       # Build training image and upload to artifacts for use in continuous delivery
       - name: Build training image
         uses: docker/build-push-action@v5
@@ -71,15 +83,15 @@ jobs:
 
       # Tag training image with current commit sha
       # This image will not be used anymore, thus will not be promoted to staging or production so it is linked only to the commit
-      # Push training image to repository
+      # Push training image to repository - AKA PROBLEMATIC STEP DUE TO  THE CAPITALIZATION IN THE REGISTRY NAME OR OWNER NAME
       - name: Push training image
         run: |
-          docker tag training:${{ github.sha }} ${{ env.REGISTRY }}/${{ github.repository }}/training:${{ github.sha }}
-          docker push ${{ env.REGISTRY }}/${{ github.repository }}/training:${{ github.sha }}
+          docker tag training:${{ github.sha }} ${{ steps.vars.outputs.IMAGE_PREFIX }}/training:${{ github.sha }}
+          docker push ${{ steps.vars.outputs.IMAGE_PREFIX }}/training:${{ github.sha }}
 
       # Tag serving image with commit sha; this image will be used for further testing in the following workflows
       # Push serving image to repository
       - name: Push serving staging image
         run: |
-          docker tag serving:${{ github.sha }} ${{ env.REGISTRY }}/${{ github.repository }}/serving:${{ github.sha }}
-          docker push ${{ env.REGISTRY }}/${{ github.repository }}/serving:${{ github.sha }}
+          docker tag serving:${{ github.sha }} ${{ steps.vars.outputs.IMAGE_PREFIX }}/serving:${{ github.sha }}
+          docker push ${{ steps.vars.outputs.IMAGE_PREFIX }}/serving:${{ github.sha }}
