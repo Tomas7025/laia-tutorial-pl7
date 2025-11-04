@@ -37,17 +37,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
 
-      # Setup lowercased image prefix using env.REGISTRY and github.repository
-      - name: Setup lowercase variables
+      # Setup lowercased image prefix using reusable composite action
+      - name: Setup image variables
         id: imagevars
-        run: |
-          # Build the prefix from env.REGISTRY and github.repository and force to lower
-          PREFIX="${{ env.REGISTRY }}/${{ github.repository }}"
-          IMAGE_PREFIX=$(echo "$PREFIX" | tr '[:upper:]' '[:lower:]')
-          echo "Computed IMAGE_PREFIX=$IMAGE_PREFIX"
-          # Expose as a step output and also to subsequent steps via GITHUB_ENV
-          echo "IMAGE_PREFIX=$IMAGE_PREFIX" >> $GITHUB_OUTPUT
-          echo "IMAGE_PREFIX=$IMAGE_PREFIX" >> $GITHUB_ENV
+        uses: ./.github/actions/setup-image-vars
 
       # Build training image and upload to artifacts for use in continuous delivery
       - name: Build training image
