@@ -1,0 +1,21 @@
+name: 'Setup Image Variables'
+description: 'Calculate lowercased IMAGE_PREFIX for Docker images'
+outputs:
+  image_prefix:
+    description: 'Lowercased registry/repository prefix (e.g., ghcr.io/owner/repo)'
+    value: ${{ steps.calc.outputs.IMAGE_PREFIX }}
+
+runs:
+  using: composite
+  steps:
+    - name: Calculate IMAGE_PREFIX
+      id: calc
+      shell: bash
+      run: |
+        # Build the prefix from REGISTRY env var and github.repository and force to lowercase
+        PREFIX="${REGISTRY}/${{ github.repository }}"
+        IMAGE_PREFIX=$(echo "$PREFIX" | tr '[:upper:]' '[:lower:]')
+        echo "Computed IMAGE_PREFIX=$IMAGE_PREFIX"
+        # Expose as a step output and also to subsequent steps via GITHUB_ENV
+        echo "IMAGE_PREFIX=$IMAGE_PREFIX" >> $GITHUB_OUTPUT
+        echo "IMAGE_PREFIX=$IMAGE_PREFIX" >> $GITHUB_ENV
